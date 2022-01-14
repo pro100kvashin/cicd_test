@@ -1,0 +1,62 @@
+external_url 'https://gitlab.example.com'
+registry_external_url 'https://registry.example.com'
+nginx['redirect_http_to_https'] = true
+
+###
+# Monitoring section
+###
+# prometheus['enable'] = false              # This block disables internal monitoring
+# prometheus['monitor_kubernetes'] = false  # (monitoring is enabled by default)
+# prometheus_monitoring['enable'] = false   # Increase --shm-size of docker container
+# node_exporter['enable'] = false           # when using default monitoring
+# redis_exporter['enable'] = false
+# postgres_exporter['enable'] = false
+# gitlab_exporter['enable'] = false
+
+gitlab_rails['time_zone'] = 'Europe/Moscow'
+
+# gitlab_rails['pipeline_schedule_worker_cron'] = '* * * * *' # Default cron frequency is /30 min
+# gitlab_rails['gitlab_shell_ssh_port'] = 2224 # Non-default ssh is possible (this is the external ssh port)
+
+# gitlab_rails['smtp_enable'] = true # Gitlab can send e-mail notifications if smtp is configured
+
+##
+# Ldap section
+##
+# gitlab_rails['ldap_enabled'] = true
+# gitlab_rails['ldap_servers'] = YAML.load <<-'EOS' # remember to close thise this block with 'EOS' below
+#   main: # 'main' is the GitLab 'provider ID' of this LDAP server
+#     label: 'LDAP'
+#     host: 'example.com'
+#     port: '636'
+#     uid: 'sAMAccountName'
+#     encryption: 'simple_tls'
+#     verify_certificates: 'true'
+#     tls_options:
+#       ca_file: '/etc/gitlab/trusted-certs/RootCA.crt'
+#     bind_dn: 'CN=srv.gitlab,OU=Service Accounts,DC=example,DC=com'
+#     password: '<LDAP_PASSWORD>'
+#     active_directory: 'true'
+#     allow_username_or_email_login: 'true'
+#     lowercase_usernames: 'true'
+#     base: 'DC=example,DC=com'
+#     user_filter: '(memberOf=CN=gitlab-users,OU=Groups,DC=example,DC=com)'
+# EOS
+
+##
+# Artifacts section
+##
+# gitlab_rails['artifacts_enabled'] = true
+# gitlab_rails['artifacts_object_store_enabled'] = true
+# gitlab_rails['artifacts_object_store_remote_directory'] = "gitlab-artifacts"
+# gitlab_rails['artifacts_object_store_connection'] = {
+#   'host' => 's3.example.com',
+#   'path_style' => true,
+#   'endpoint' => 'https://s3.example.com:443',
+#   'provider' => 'AWS', # This is always AWS
+#   'region' => 'default-store', # Custom region for self-hosted provider like ceph
+#   'aws_access_key_id' => '<AWS_ACCESS_KEY>',
+#   'aws_secret_access_key' => '<AWS_SECRET_ACCESS_KEY>'
+# }
+
+registry['enable'] = true

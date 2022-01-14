@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: verybigdataapp
+spec:
+  rules:
+    - host: "bigdata-__ENVIRONMENT__.__SLURM_USERNAME__.edu.slurm.io"
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: verybigdataapp
+              servicePort: 80
+

@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verybigdataapp
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 58080
+    protocol: TCP
+    name: http
+  selector:
+    app: verybigdataapp

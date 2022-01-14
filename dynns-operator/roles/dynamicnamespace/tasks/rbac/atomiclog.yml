@@ -1,0 +1,47 @@
+---
+# file: roles/dynamicnamespace/tasks/rbac/atomiclog.yml
+# This group of tasks need for create service account to log watcher for helm deploy.
+# This group of tasks create sa and role and rollebindign.
+
+- name: Create SA to for access from ci/cd to logs
+  k8s:
+    api_version: v1
+    kind: ServiceAccount
+    name: atomiclog
+    namespace: "{{ meta.name }}"
+
+- name: Create role for SA view-atomiclog
+  k8s:
+    api_version: v1
+    kind: Role
+    name: operator:dynns:view-atomiclog
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      rules:
+      - apiGroups:
+        - ""
+        - extensions
+        - apps
+        resources:
+        - '*'
+        verbs:
+        - get
+        - list
+        - watch
+
+- name: Create rolebinding for SA atomiclog
+  k8s:
+    api_version: v1
+    kind: RoleBinding
+    name: operator:dynns:view-atomiclog
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: operator:dynns:view-atomiclog
+      subjects:
+        - kind: ServiceAccount
+          name: atomiclog
+          namespace: "{{ meta.name }}"
+...

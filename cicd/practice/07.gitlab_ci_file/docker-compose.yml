@@ -1,0 +1,9 @@
+version: '3.7'
+services:
+  app:
+    image: $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID
+    ports:
+      - "8080:8080"
+  test:
+    image: curlimages/curl:7.73.0
+    command: /bin/sh -c "sleep 10 && curl -s http://app:8080/ -i -vvv"

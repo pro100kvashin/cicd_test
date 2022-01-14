@@ -1,0 +1,92 @@
+---
+stages:
+  - lint
+  - build_n_push
+  - deploy_operator
+  - deploy_meta_cr
+
+variables:
+  OPERATOR_IMAGE_PULL_SECRET: gitlab-registry-pull
+
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "master"
+
+default:
+  image:
+    name: centosadmin/antools:0.1.0-alpine
+    entrypoint: ["/usr/local/bin/kubelogin.sh"]
+
+docker:build:
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "master"
+    - when: never
+  script:
+    - docker build -t "${CI_REGISTRY_IMAGE}:$CI_COMMIT_SHORT_SHA" -f build/Dockerfile .
+    - docker push "${CI_REGISTRY_IMAGE}:$CI_COMMIT_SHORT_SHA"
+  stage: build_n_push
+  tags: [ shell-executor ]
+
+.subworkflow:
+  before_script:
+    - test -z "$K8S_API_URL" && exit 2
+    - test -z "$K8S_CI_TOKEN" && exit 2
+#   needs:
+#     - docker:build
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+    - if: $CI_COMMIT_BRANCH == "master"
+#       when: manual
+    - when: never
+  tags: [ docker-executor ]
+
+.deploy:
+  extends: .subworkflow
+  script:
+    - kubectl get ns $OPERATOR_NAMESPACE
+        || kubectl create ns $OPERATOR_NAMESPACE
+    - kubectl -n $OPERATOR_NAMESPACE get secret $OPERATOR_IMAGE_PULL_SECRET
+        || kubectl -n $OPERATOR_NAMESPACE create secret docker-registry $OPERATOR_IMAGE_PULL_SECRET
+        --docker-server=$CI_REGISTRY
+        --docker-username=$CI_DEPLOY_USER
+        --docker-password="$CI_DEPLOY_PASSWORD"
+    - envsubst < deploy/cluster_role.yaml.tmpl > deploy/cluster_role.yaml
+    - envsubst < deploy/operator.yaml.tmpl > deploy/operator.yaml
+    - envsubst < deploy/quota.yaml.tmpl > deploy/quota.yaml
+    - kubectl -n $OPERATOR_NAMESPACE apply -f deploy/crds/devops.slurm.io_metadynamicnamespaces_crd.yaml
+    - kubectl -n $OPERATOR_NAMESPACE apply -f deploy/crds/devops.slurm.io_dynamicnamespaces_crd.yaml
+    - kubectl -n $OPERATOR_NAMESPACE apply -f deploy/service_account.yaml
+    - kubectl apply -f deploy/cluster_role.yaml
+    - kubectl -n $OPERATOR_NAMESPACE apply -f deploy/netpol.yaml
+    - kubectl -n $OPERATOR_NAMESPACE apply -f deploy/operator.yaml
+    - sleep 24
+    - kubectl -n $OPERATOR_NAMESPACE apply -f deploy/quota.yaml
+  stage: deploy_operator
+
+deploy:op:kube-cluster:
+  extends: .deploy
+  variables:
+    K8S_CLUSTER_NAME: cluster.local
+    OPERATOR_PROJECTS_QUOTA: 20
+    OPERATOR_NAMESPACE: op-dynns
+
+.cr:
+  extends: .subworkflow
+  script:
+    - kubectl -n $OPERATOR_NAMESPACE apply -f deploy/$CR_CATALOG
+  stage: deploy_meta_cr
+
+deploy:meta-cr:kube-cluster:
+  extends: .cr
+  stage: deploy_meta_cr
+  variables:
+    CR_CATALOG: meta-ns
+    K8S_CLUSTER_NAME: cluster.local
+    OPERATOR_NAMESPACE: op-dynns
+...

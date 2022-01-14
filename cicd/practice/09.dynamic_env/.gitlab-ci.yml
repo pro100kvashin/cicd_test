@@ -1,0 +1,130 @@
+---
+# vim: ft=yaml:
+stages:
+  - build
+  - test
+  - cleanup
+  - dynns_check
+  - create_ns
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  K8S_CLUSTER_NAME: slurm.local
+  OPERATOR_NAMESPACE: "op-dynns-app"
+
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_ID
+    - if: $CI_COMMIT_REF_NAME == "master"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+default:
+  image:
+    name: centosadmin/antools:0.1.0-alpine
+    entrypoint: ["/usr/local/bin/kubelogin.sh"]
+
+.docker:
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  image:
+    name: docker:19.03.11
+  tags: [ shell-executor ]
+
+docker:build:
+  extends: .docker
+  script:
+    - docker build -t $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID .
+    - docker push $CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID
+  stage: build
+
+.compose:
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  image:
+    name: docker/compose:alpine-1.27.4
+  tags: [ docker-executor ]
+
+docker:test:
+  extends: .compose
+  script:
+    - docker-compose
+      -p "${CI_PROJECT_NAME}_$CI_PIPELINE_ID" up
+      --abort-on-container-exit --exit-code-from test
+  stage: test
+
+docker:test:cleanup:
+  extends: .compose
+  script:
+    - docker-compose
+      -p "${CI_PROJECT_NAME}_$CI_PIPELINE_ID" down
+  stage: cleanup
+  when: always
+
+env:avail:kube:
+  script:
+    - test -z "$K8S_API_URL" && exit 2
+    - test -z "$K8S_CI_TOKEN" && exit 2
+    - dynns_hard=0; dynns_used=0; dynns_exists=0
+    - dynns_hard=$(kubectl -n $OPERATOR_NAMESPACE get resourcequotas object-counts
+      -o jsonpath='{.status.hard.count/dynamicnamespaces\.devops\.slurm\.io}')
+    - dynns_used=$(kubectl -n $OPERATOR_NAMESPACE get resourcequotas object-counts
+      -o jsonpath='{.status.used.count/dynamicnamespaces\.devops\.slurm\.io}')
+    - dynns_exists=$(kubectl -n $OPERATOR_NAMESPACE get dynns -o custom-columns=:metadata.labels.ci-commit-ref-slug --no-headers | grep -c $CI_COMMIT_REF_SLUG || :)
+    - "echo dynns_hard: $dynns_hard, dynns_used: $dynns_used, dynns_exists: $dynns_exists, CI_COMMIT_REF_SLUG: $CI_COMMIT_REF_SLUG"
+    - "if (( dynns_used < dynns_hard || dynns_exists )); then
+        echo :: OK: AVAILABLE ENVIRONMENT FOUND.;
+      else
+        echo :: FATAL: NO AVAILABLE DYNAMIC ENVIRONMENTS FOUND.;
+        false;
+      fi"
+  stage: dynns_check
+  tags: [ docker-executor ]
+
+.env:
+  environment:
+    name: "${CI_PROJECT_NAME}/$CI_COMMIT_REF_SLUG"
+    url: "http://${CI_ENVIRONMENT_SLUG}.app.${GITLAB_USER_LOGIN}.edu.slurm.io"
+    on_stop: env:stop:kube
+    auto_stop_in: 6 hours
+  tags: [ docker-executor ]
+
+env:create:kube:
+  extends: .env
+  script:
+    - envsubst < cr.yml.tmpl > cr.yml
+    - nl cr.yml
+    - kubectl apply -f cr.yml
+    - echo OPERATOR_NAMESPACE=$OPERATOR_NAMESPACE
+    - until STATUS=$(kubectl -n $OPERATOR_NAMESPACE get dynns $CI_ENVIRONMENT_SLUG -o jsonpath='{.status.conditions[0].reason}');
+      test ${STATUS:-Undefined} = "Successful";
+      do echo -n "${STATUS:-Undefined} "; sleep 5; (( i += 5 )); echo "${i:--1} ";
+      done; echo "${STATUS:-Undefined}"
+  stage: create_ns
+
+env:stop:kube:
+  environment:
+    name: ${CI_PROJECT_NAME}/$CI_COMMIT_REF_SLUG
+    action: stop
+  script:
+    - kubectl -n $OPERATOR_NAMESPACE delete dynns $CI_ENVIRONMENT_SLUG
+  stage: create_ns
+  tags: [ docker-executor ]
+  variables:
+    GIT_STRATEGY: none
+  when: manual
+
+deploy:app:
+  extends: .env
+  script:
+    - helm -n $CI_ENVIRONMENT_SLUG upgrade --install $CI_PROJECT_PATH_SLUG .helm
+        --set image="$CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME"
+        --set imageTag=$CI_COMMIT_REF_SLUG.$CI_PIPELINE_ID
+        --set ingress.host="${CI_ENVIRONMENT_SLUG}.app.${GITLAB_USER_LOGIN}.edu.slurm.io"
+        --debug
+        --atomic
+        --timeout 40s
+  stage: deploy
+  variables:
+    K8S_CI_DYNNS: "true"
+...

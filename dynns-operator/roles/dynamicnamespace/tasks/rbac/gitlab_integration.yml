@@ -1,0 +1,69 @@
+---
+# file: tasks/rbac/deploy_sa.yml
+# This group of task get tokent for deploy-sa service account and uploads to gitlab ci/cd into secret variables. 
+
+- name: Get secret name for SA
+  k8s_info:
+    api_version: v1
+    kind: ServiceAccount
+    name: deploy-sa
+    namespace: "{{ meta.name }}"
+    field_selectors: secrets
+  register: __dynns_deploy_secret
+
+- name: Get token value for SA
+  k8s_info:
+    api_version: v1
+    kind: Secret
+    name: "{{ __dynns_deploy_secret.resources[0].secrets[0].name }}"
+    namespace: "{{ meta.name }}"
+  register: __dynns_deploy_token
+
+- name: Decode token and save to varible
+  set_fact:
+    _dynns_sa_token: "{{ __dynns_deploy_token.resources[0].data.token|b64decode }}"
+
+- name: Generate variable name for gitlab
+  set_fact:
+    _dynns_deploy_token: 'K8S_API_TOKEN_{{ meta.name|replace("-", "_")|upper }}'
+
+- name: Var extraction
+  block:
+    - name: Create tempfile
+      tempfile:
+        state: file
+        prefix: dynns.
+      register: __dynns_gitlab_temp
+      changed_when: false
+
+# In this tasks variable from cr save to file and then file will included as variable.
+# Looks strange but we cant use ansible-vault variables in cr definition.
+    - name: Copy token from cr to file
+      copy:
+        content: "{{ gitlab_access.api_token|b64decode }}"
+        dest: "{{ __dynns_gitlab_temp.path }}"
+        mode: "0644"
+      changed_when: false
+  delegate_to: localhost
+
+- name: Include var with gitlab token from file
+  include_vars:
+    file: "{{ __dynns_gitlab_temp.path }}"
+
+- name: Remove tempfile
+  file:
+    path: "{{ __dynns_gitlab_temp.path }}"
+    state: absent
+  changed_when: false
+  delegate_to: localhost
+
+- name: Set or update token in CI/CD variables
+  gitlab_project_variable:
+    api_url: "{{ gitlab_access.url }}"
+    api_token: "{{ _dynns_gitlab_api_token }}"
+    project: "{{ gitlab_access.project }}"
+    purge: false
+    vars:
+       '{ "{{ _dynns_deploy_token }}": "{{ _dynns_sa_token }}" }'
+  register: __dynns_gitlab_ci_variable
+...

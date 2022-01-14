@@ -1,0 +1,11 @@
+---
+# file: roles/metadynfin/tasks/main.yml
+# Task for finalizer "meta"-namespace. 
+
+- name: Remove the namespace
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: "op-dynns-{{ meta.name }}"
+    state: absent
+...

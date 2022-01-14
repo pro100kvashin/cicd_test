@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verybigdataapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verybigdataapp
+  template:
+    metadata:
+      labels:
+        app: verybigdataapp
+    spec:
+      imagePullSecrets:
+      - name: slurm-registry
+      containers:
+      - name: verybigdataapp
+        image: "__CI_REGISTRY_IMAGE__:__IMAGE_TAG__"
+        ports:
+        - name: http
+          containerPort: 58080
+          protocol: TCP

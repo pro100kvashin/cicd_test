@@ -1,0 +1,30 @@
+---
+# file: roles/dynamicnamespace/tasks/ranges.yml
+# This group of task check asserts and create name space ranges for name spaces
+
+- name: Set limit ranges
+  k8s:
+    api_version: v1
+    kind: LimitRange
+    name: resource-limits
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      spec:
+        limits:
+          - type: Container
+            max:
+              cpu: "{{ dynns_limit_ranges._container.limits.max.cpu|d(dynns_limits_defaults._container.limits.max.cpu) }}"
+              memory: "{{ dynns_limit_ranges._container.limits.max.memory|d(dynns_limits_defaults._container.limits.max.memory) }}"
+            min:
+              cpu: "{{ dynns_limit_ranges._container.requests.min.cpu|d(dynns_limits_defaults._container.requests.min.cpu) }}"
+              memory: "{{ dynns_limit_ranges._container.requests.min.memory|d(dynns_limits_defaults._container.requests.min.memory) }}"
+            default:
+              cpu: "{{ dynns_limit_ranges._container.limits.default.cpu|d(dynns_limits_defaults._container.limits.default.cpu) }}"
+              memory: "{{ dynns_limit_ranges._container.limits.default.memory|d(dynns_limits_defaults._container.limits.default.memory) }}"
+            defaultRequest:
+              cpu: "{{ dynns_limit_ranges._container.requests.default.cpu|d(dynns_limits_defaults._container.requests.default.cpu) }}"
+              memory: "{{ dynns_limit_ranges._container.requests.default.memory|d(dynns_limits_defaults._container.requests.default.memory) }}"
+            maxLimitRequestRatio:
+              cpu: "{{ dynns_limit_ranges._container.max_limit_request_ratio.cpu|d(dynns_limits_defaults._container.max_limit_request_ratio.cpu) }}"
+              memory: "{{ dynns_limit_ranges._container.max_limit_request_ratio.memory|d(dynns_limits_defaults._container.max_limit_request_ratio.memory) }}"
+...

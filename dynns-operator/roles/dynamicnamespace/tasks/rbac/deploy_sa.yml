@@ -1,0 +1,62 @@
+---
+# file: roles/dynamicnamespace/tasks/rbac/deploy_sa.yml
+# This grop of task need for deploy application into cluster. This group of tasks create sa and rollebindign. 
+
+- name: Create a SA to access from ci/cd
+  k8s:
+    api_version: v1
+    kind: ServiceAccount
+    name: deploy-sa
+    namespace: "{{ meta.name }}"
+
+- name: Create a role for SA
+  k8s:
+    api_version: v1
+    kind: Role
+    name: operator:dynns:deploy-sa
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      rules:
+      - apiGroups:
+        - ""
+        - extensions
+        - apps
+        - batch
+        - certmanager.k8s.io
+        - cert-manager.io
+        - monitoring.coreos.com
+        - networking.k8s.io
+        resources:
+        - '*'
+        verbs:
+        - '*'
+      - apiGroups:
+        - rbac.authorization.k8s.io
+        resources:
+        - rolebindings
+        - roles
+        verbs:
+        - '*'
+      - apiGroups:
+        - policy
+        resources:
+        - poddisruptionbudgets
+        verbs:
+        - '*'
+
+- name: Create rolebinding for SA
+  k8s:
+    api_version: v1
+    kind: RoleBinding
+    name: operator:dynns:deploy-sa
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: operator:dynns:deploy-sa
+      subjects:
+        - kind: ServiceAccount
+          name: deploy-sa
+          namespace: "{{ meta.name }}"
+...

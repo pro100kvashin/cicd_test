@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dynns-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: dynns-operator
+  template:
+    metadata:
+      labels:
+        name: dynns-operator
+    spec:
+      serviceAccountName: dynns-operator
+      containers:
+        - name: dynns-operator
+          image: "${CI_REGISTRY_IMAGE}:$CI_COMMIT_SHORT_SHA"
+          imagePullPolicy: "Always"
+          volumeMounts:
+          - mountPath: /tmp/ansible-operator/runner
+            name: runner
+          - mountPath: "/opt/ansible/.ansible/.vault/"
+            name: vault-pass
+            readOnly: true
+          env:
+            - name: WATCH_NAMESPACE
+              value: ""
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "dynns-operator"
+            - name: ANSIBLE_GATHERING
+              value: explicit
+            - name: ANSIBLE_VAULT_PASSWORD_FILE
+              value: "/opt/ansible/.ansible/.vault/.vault_pass"
+      imagePullSecrets:
+      - name: "$OPERATOR_IMAGE_PULL_SECRET"
+      volumes:
+        - name: runner
+          emptyDir: {}
+        - name: vault-pass
+          secret:
+            secretName: ansible-vault
+...

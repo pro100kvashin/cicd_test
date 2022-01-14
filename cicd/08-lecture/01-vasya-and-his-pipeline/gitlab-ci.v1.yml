@@ -1,0 +1,23 @@
+stages:
+# - other stages
+- docker
+# - deploy manifests
+
+Build and publish docker image:
+  stage: docker
+  variables:
+    DOCKER_HOST: tcp://localhost:2375
+  services:
+  - name: docker:19.03-dind
+  image: docker:19.03.12
+  tags:
+  - shared
+  - privileged
+  script:
+  - docker login -u v.pupkin -p s3cr3tpassw0rd registry.example.com
+  - docker pull registry.example.com/bestteam/superapp:latest || true
+  - docker build --cache-from registry.example.com/bestteam/superapp:latest
+      --tag registry.example.com/bestteam/superapp:latest
+      --tag registry.example.com/bestteam/superapp:$(cat VERSION) .
+  - docker push registry.example.cat/bestteam/superapp:latest
+  - docker push registry.example.cat/bestteam/superapp:$(cat VERSION)

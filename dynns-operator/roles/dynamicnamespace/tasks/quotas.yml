@@ -1,0 +1,49 @@
+---
+# file: roles/dynamicnamespace/tasks/quotas.yml
+# This group of task check asserts and create name space quotas for name spaces
+
+- name: Set compute quotas
+  k8s:
+    api_version: v1
+    kind: ResourceQuota
+    name: compute-resources
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      spec:
+        hard:
+          requests.cpu: "{{ dynns_resource_qoutas.compute.requests.cpu|d(dynns_quotas_defaults.compute.requests.cpu) }}"
+          requests.memory: "{{ dynns_resource_qoutas.compute.requests.memory|d(dynns_quotas_defaults.compute.requests.memory) }}"
+          limits.cpu: "{{ dynns_resource_qoutas.compute.limits.cpu|d(dynns_quotas_defaults.compute.limits.cpu) }}"
+          limits.memory: "{{ dynns_resource_qoutas.compute.limits.memory|d(dynns_quotas_defaults.compute.limits.memory) }}"
+
+- name: Set storage quotas
+  k8s:
+    api_version: v1
+    kind: ResourceQuota
+    name: storage-resources
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      spec:
+        hard:
+          requests.storage: "{{ dynns_resource_qoutas.storage.requests|d(dynns_quotas_defaults.storage.requests) }}"
+          persistentvolumeclaims: "{{ dynns_resource_qoutas.storage.persistentvolumeclaims|d(dynns_quotas_defaults.storage.persistentvolumeclaims) }}"
+
+- name: Set object count quotas
+  k8s:
+    api_version: v1
+    kind: ResourceQuota
+    name: object-counts
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      spec:
+        hard:
+          configmaps: "{{ dynns_resource_qoutas.counts.configmaps|d(dynns_quotas_defaults.counts.configmaps) }}"
+          persistentvolumeclaims: "{{ dynns_resource_qoutas.counts.persistentvolumeclaims|d(dynns_quotas_defaults.counts.persistentvolumeclaims) }}"
+          pods: "{{ dynns_resource_qoutas.counts.pods|d(dynns_quotas_defaults.counts.pods) }}"
+          replicationcontrollers: "{{ dynns_resource_qoutas.counts.replicationcontrollers|d(dynns_quotas_defaults.counts.replicationcontrollers) }}"
+          resourcequotas: "{{ dynns_resource_qoutas.counts.resourcequotas|d(dynns_quotas_defaults.counts.resourcequotas) }}"
+          secrets: "{{ dynns_resource_qoutas.counts.secrets|d(dynns_quotas_defaults.counts.secrets) }}"
+          services: "{{ dynns_resource_qoutas.counts.services.all|d(dynns_quotas_defaults.counts.services.all) }}"
+          services.loadbalancers: "{{ dynns_resource_qoutas.counts.services.loadbalancers|d(dynns_quotas_defaults.counts.services.loadbalancers) }}"
+          services.nodeports: "{{ dynns_resource_qoutas.counts.services.nodeports|d(dynns_quotas_defaults.counts.services.nodeports) }}"
+...

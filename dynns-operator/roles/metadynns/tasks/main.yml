@@ -1,0 +1,34 @@
+---
+# file: roles/metadynns/tasks/main.yml
+# Create "meta"-namespace for DynamicNamespace CRs
+# and include other tasks
+
+- name: Check role requirements
+  assert:
+    that:
+      - ansible_version.full is version('2.8.0', '>=')
+
+- name: Create a namespace
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: "op-dynns-{{ meta.name }}"
+    resource_definition:
+      metadata:
+        labels:
+          type: dynamic-meta
+
+- name: Set CR quota
+  k8s:
+    api_version: v1
+    kind: ResourceQuota
+    name: object-counts
+    namespace: "op-dynns-{{ meta.name }}"
+    resource_definition:
+      spec:
+        hard:
+          count/dynamicnamespaces.devops.slurm.io: "{{ dynns_cr_quota }}"
+
+- name: Import rbac/deploy_sa
+  import_tasks: rbac/deploy_sa.yml
+...

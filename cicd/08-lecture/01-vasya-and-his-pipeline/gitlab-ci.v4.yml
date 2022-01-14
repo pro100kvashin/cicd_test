@@ -1,0 +1,11 @@
+include:
+- file: /docker.v1.yml
+
+stages:
+# - other stages
+- docker
+# - deploy manifests
+
+Build docker image:
+  stage: docker
+  extends: .build_docker_image

@@ -1,0 +1,47 @@
+---
+# file: roles/dynamicnamespace/vars/main.yml
+# Define default limits for ns
+
+dynns_quotas_defaults:
+  compute:
+    requests:
+      cpu: "4"
+      memory: 24Gi
+    limits:
+      cpu: "6"
+      memory: 24Gi
+  storage:
+    requests: 100Gi
+    persistentvolumeclaims: 20
+  counts:
+    configmaps: 20
+    persistentvolumeclaims: 20
+    pods: 50
+    replicationcontrollers: 10
+    resourcequotas: 3
+    secrets: 100
+    services:
+      all: 40
+      loadbalancers: 1
+      nodeports: 1
+
+dynns_limits_defaults:
+  _container:
+    limits:
+      default:
+        cpu: 250m
+        memory: 512Mi
+      max:
+        cpu: "2"
+        memory: 16Gi
+    requests:
+      default:
+        cpu: 250m
+        memory: 512Mi
+      min:
+        cpu: 50m
+        memory: 64Mi
+    max_limit_request_ratio:
+      cpu: 4
+      memory: 2
+...

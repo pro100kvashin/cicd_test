@@ -1,0 +1,72 @@
+---
+# file: roles/dynamicnamespace/tasks/rbac/deploy_sa.yml
+# This grop of task need for grant access for team to dynns.
+# This group of task map groups from LDAP to ns with rollebinding 
+# cluster roles cluster-admin and viewer
+
+- name: Create rolebinding for team AD ro group
+  k8s:
+    api_version: v1
+    kind: RoleBinding
+    name: "operator:dynns:{{ product_team_name }}:viewer"
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: viewer
+      subjects:
+        - kind: Group
+          name: "Kubernetes-{{ oidc_auth_cluster_name }}-{{ product_team_name }}-ro"
+          namespace: "{{ meta.name }}"
+
+- name: Create rolebinding for team AD rw group
+  k8s:
+    api_version: v1
+    kind: RoleBinding
+    name: "operator:dynns:{{ product_team_name }}:admin"
+    namespace: "{{ meta.name }}"
+    resource_definition:
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+        - kind: Group
+          name: "Kubernetes-{{ oidc_auth_cluster_name }}-{{ product_team_name }}-rw"
+          namespace: "{{ meta.name }}"
+
+- name: Create clusterrole for team AD list ns
+  k8s:
+    api_version: v1
+    kind: ClusterRole
+    name: operator:dynns:ns-viewer
+    resource_definition:
+      rules:
+      - apiGroups:
+        - ""
+        resources:
+        - namespaces
+        - namespaces/status
+        verbs:
+        - get
+        - list
+        - watch
+
+- name: Create clusterrolebinding for team AD list ns
+  k8s:
+    api_version: v1
+    kind: ClusterRoleBinding
+    name: "operator:dynns:{{ product_team_name }}:ns-viewer"
+    resource_definition:
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: operator:dynns:ns-viewer
+      subjects:
+        - kind: Group
+          name: "Kubernetes-{{ oidc_auth_cluster_name }}-{{ product_team_name }}-rw"
+        - kind: Group
+          name: "Kubernetes-{{ oidc_auth_cluster_name }}-{{ product_team_name }}-ro"
+
+...

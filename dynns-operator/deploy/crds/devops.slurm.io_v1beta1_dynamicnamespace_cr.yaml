@@ -1,0 +1,19 @@
+---
+# This template is not in use, but just as sample
+apiVersion: devops.slurm.io/v1beta1
+kind: DynamicNamespace
+metadata:
+  name: $CI_ENVIRONMENT_SLUG
+  namespace: op-dynns-meta-$CI_PROJECT_NAME
+spec:
+  productTeamName: $CR_PRODUCT_TEAM_NAME
+  inCharge: $GITLAB_USER_LOGIN
+  registryCreds:
+    url: $CR_REGISTRY_URL
+    user: $CR_DEPLOY_USER
+    password: $CR_DEPLOY_PASSWORD_ENCRYPTED
+  gitlabAccess:
+    apiToken: $CR_GITLAB_API_TOKEN_ENCRYPTED
+    project: ${CI_PROJECT_NAMESPACE}/$CI_PROJECT_NAME
+    url: $CI_SERVER_URL
+...

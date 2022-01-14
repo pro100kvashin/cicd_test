@@ -1,0 +1,212 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: dynamicnamespaces.devops.slurm.io
+spec:
+  group: devops.slurm.io
+  names:
+    kind: DynamicNamespace
+    listKind: DynamicNamespaceList
+    plural: dynamicnamespaces
+    shortNames:
+    - dynns
+    singular: dynamicnamespace
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+        properties:
+          spec:
+            type: object
+            properties:
+              inCharge:
+                type: string
+                pattern: '^[a-zA-Z0-9][-\a-zA-Z0-9@.]+[a-zA-Z0-9]$'
+              productTeamName:
+                type: string
+                pattern: '^[a-zA-Z0-9][-\a-zA-Z0-9@.]+[a-zA-Z0-9]$'
+              pspName:
+                type: string
+                pattern: '^dynns-[-a-zA-Z0-9]+$'
+              activeDirectoryAuth:
+                type: boolean
+              oidcAuthClusterName:
+                type: string
+                pattern: '^(dev|prod)$'
+              gitlabAccess:
+                type: object
+                properties:
+                  project:
+                    type: string
+                    pattern: '^[a-zA-Z0-9][-a-zA-Z0-9\/]+[a-zA-Z0-9]$'
+                  url:
+                    type: string
+                  apiToken:
+                    type: string
+              registryCreds:
+                type: object
+                properties:
+                  user:
+                    type: string
+                  password:
+                    type: string
+                  url:
+                    type: string
+              dynnsResourceQoutas:
+                type: object
+                properties:
+                  compute:
+                    type: object
+                    properties:
+                      requests:
+                        type: object
+                        properties:
+                          cpu:
+                            type: string
+                            pattern: '^(\d+m?|\d+\.\d+)$'
+                          memory:
+                            type: string
+                            pattern: '^\d+(\.\d+)?[MGTP]i$'
+                      limits:
+                        type: object
+                        properties:
+                          cpu:
+                            type: string
+                            pattern: '^(\d+m?|\d+\.\d+)$'
+                          memory:
+                            type: string
+                            pattern: '^\d+(\.\d+)?[MGTP]i$'
+                  storage:
+                    type: object
+                    properties:
+                      requests:
+                        type: string
+                        pattern: '^\d+(\.\d+)?[MGTP]i$'
+                      persistentvolumeclaims:
+                        type: integer
+                        minimum: 0
+                        maximum: 512
+                  counts:
+                    type: object
+                    properties:
+                      configmaps:
+                        type: integer
+                        minimum: 0
+                        maximum: 512
+                      persistentvolumeclaims:
+                        type: integer
+                        minimum: 0
+                        maximum: 512
+                      pods:
+                        type: integer
+                        minimum: 0
+                        maximum: 512
+                      replicationcontrollers:
+                        type: integer
+                        minimum: 0
+                        maximum: 512
+                      resourcequotas:
+                        type: integer
+                        minimum: 0
+                        maximum: 512
+                      secrets:
+                        type: integer
+                        minimum: 0
+                        maximum: 512
+                      services:
+                        type: object
+                        properties:
+                          all:
+                            type: integer
+                            minimum: 0
+                            maximum: 512
+                          loadbalancers:
+                            type: integer
+                            minimum: 0
+                            maximum: 512
+                          nodeports:
+                            type: integer
+                            minimum: 0
+                            maximum: 512
+              dynnsLimitRanges:
+                type: object
+                properties:
+                  Container:
+                    type: object
+                    properties:
+                      limits:
+                        type: object
+                        properties:
+                          default:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                                pattern: '^(\d+m?|\d+\.\d+)$'
+                              memory:
+                                type: string
+                                pattern: '^\d+(\.\d+)?[MGTP]i$'
+                          max:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                                pattern: '^(\d+m?|\d+\.\d+)$'
+                              memory:
+                                type: string
+                                pattern: '^\d+(\.\d+)?[MGTP]i$'
+                      requests:
+                        type: object
+                        properties:
+                          default:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                                pattern: '^(\d+m?|\d+\.\d+)$'
+                              memory:
+                                type: string
+                                pattern: '^\d+(\.\d+)?[MGTP]i$'
+                          min:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                                pattern: '^(\d+m?|\d+\.\d+)$'
+                              memory:
+                                type: string
+                                pattern: '^\d+(\.\d+)?[MGTP]i$'
+                      maxLimitRequestRatio:
+                        type: object
+                        properties:
+                          cpu:
+                            type: integer
+                            format: int32
+                            minimum: 2
+                            maximum: 256
+                          memory:
+                            type: integer
+                            format: int32
+                            minimum: 2
+                            maximum: 256
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+      - name: IN_CHARGE
+        type: string
+        description: Person incharged for the team's environments
+        jsonPath: .spec.inCharge
+      - name: Team
+        type: string
+        description: Name of team that is owned this name space.
+        jsonPath: .spec.productTeamName
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+...

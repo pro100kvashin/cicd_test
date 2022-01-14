@@ -1,0 +1,28 @@
+---
+apiVersion: devops.slurm.io/v1beta1
+kind: DynamicNamespace
+metadata:
+  name: $CI_ENVIRONMENT_SLUG
+  namespace: $OPERATOR_NAMESPACE
+  labels:
+    ci-commit-ref-slug: $CI_COMMIT_REF_SLUG
+spec:
+  productTeamName: SlurmStudents
+  inCharge: $GITLAB_USER_LOGIN
+  dynnsResourceQoutas:
+    compute:
+      limits:
+        cpu: 1500m
+        memory: 6Gi
+      requests:
+        cpu: "2"
+        memory: 7Gi
+  registryCreds:
+    url: $CI_REGISTRY
+    user: "$CR_DEPLOY_USER"
+    password: $CR_DEPLOY_PASSWORD_ENCRYPTED
+  gitlabAccess:
+    apiToken: $CR_GITLAB_API_TOKEN_ENCRYPTED
+    project: ${CI_PROJECT_NAMESPACE}/$CI_PROJECT_NAME
+    url: $CI_SERVER_URL
+...

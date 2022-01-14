@@ -1,0 +1,13 @@
+---
+apiVersion: devops.slurm.io/v1beta1
+kind: DynamicNamespace
+metadata:
+  name: other-project
+spec:
+  productTeamName: Avangard
+  inCharge: none
+  registryCreds:
+    url: jfrog-registry.example.com/docker-local
+    user: deploy
+    password: XXX
+...

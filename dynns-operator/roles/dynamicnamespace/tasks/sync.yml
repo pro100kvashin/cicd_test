@@ -1,0 +1,76 @@
+---
+# file: roles/dynamicnamespace/tasks/sync.yml
+# Remove CRs, which don't correspond active environments in the GitLab
+
+- name: Get projects list
+  uri:
+    headers:
+      Private-Token: "{{ _dynns_gitlab_api_token }}"
+    url: >
+      {{ gitlab_access.url }}/api/v4/projects?simple=true&per_page=20&page={{ item }}
+  when: >
+    __dynns_gitlab_projects is not defined or
+    __dynns_gitlab_projects.x_next_page|d()
+  loop: "{{ range(1, 11)|list }}"
+  register: __dynns_gitlab_projects
+
+- name: Set _dynns_project_attrs fact
+  set_fact:
+    _dynns_project_attrs: >
+      {{ __dynns_gitlab_projects.results
+      |rejectattr('skipped', 'sameas', true)
+      |map(attribute='json')
+      |flatten(levels=1)
+      |selectattr('path_with_namespace', 'equalto', gitlab_access.project)
+      |list
+      |first }}
+
+- name: Get active envs list
+  uri:
+    headers:
+      Private-Token: "{{ _dynns_gitlab_api_token }}"
+    url: >
+      {{ gitlab_access.url }}/api/v4/projects/{{ _dynns_project_attrs.id }}/environments?states=available&per_page=20&page={{ item }}
+  when: >
+    __dynns_gitlab_envs is not defined or
+    __dynns_gitlab_envs.x_next_page|d()
+  loop: "{{ range(1, 11)|list }}"
+  register: __dynns_gitlab_envs
+
+- name: Set _dynns_gitlab_envs_slug fact
+  set_fact:
+    _dynns_gitlab_envs_slug: >
+      {{ __dynns_gitlab_envs.results
+      |rejectattr('skipped', 'sameas', true)
+      |map(attribute='json')
+      |flatten(levels=1)
+      |map(attribute='slug')|list }}
+
+- name: Get existing dynns resources
+  k8s_info:
+    api_version: devops.slurm.io/v1beta1
+    kind: DynamicNamespace
+    namespace: "{{ meta.namespace }}"
+  register: __dynns_existing_crs
+
+- name: PRINT NAMESPACES FOR DELETION
+  debug:
+    msg: >
+      {{ __dynns_existing_crs.resources
+      |map(attribute='metadata.name')
+      |list
+      |difference(_dynns_gitlab_envs_slug) }}
+
+- name: Delete extra dynns
+  k8s:
+    api_version: devops.slurm.io/v1beta1
+    kind: DynamicNamespace
+    name: "{{ item }}"
+    namespace: "{{ meta.namespace }}"
+    state: absent
+  loop: >
+    {{ __dynns_existing_crs.resources
+    |map(attribute='metadata.name')
+    |list
+    |difference(_dynns_gitlab_envs_slug) }}
+...

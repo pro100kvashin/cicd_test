@@ -1,0 +1,14 @@
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: operator:dynns:$OPERATOR_NAMESPACE
+subjects:
+- kind: ServiceAccount
+  name: dynns-operator
+  namespace: $OPERATOR_NAMESPACE
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+...

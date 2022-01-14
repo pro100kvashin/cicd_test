@@ -1,0 +1,8 @@
+include:
+- file: /docker.v1.yml
+
+stages:
+# - other stages
+- docker
+# - deploy manifests
+

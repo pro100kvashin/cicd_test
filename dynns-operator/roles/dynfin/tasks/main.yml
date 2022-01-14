@@ -1,0 +1,51 @@
+---
+# file: roles/dynfin/tasks/main.yml
+# Task for finalizer name space. 
+# Group of task remove variable with deploy token from gitlab.
+
+- name: Remove the namespace
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ meta.name }}"
+    state: absent
+
+- name: Set name for gitlab token variable
+  set_fact:
+    _token_dynns_deploy_: 'K8S_API_TOKEN_{{ meta.name|replace("-", "_")|upper }}'
+
+- name: Var extraction
+  block:
+    - name: Create tempfile
+      tempfile:
+        state: file
+        prefix: dynns.
+      register: __dynns_fin_temp
+
+    - name: Copy token from cr to file
+      copy:
+        content: "{{ gitlab_access.api_token|b64decode }}"
+        dest: "{{ __dynns_fin_temp.path }}"
+        mode: "0644"
+  delegate_to: localhost
+
+- name: include var with gitlab token
+  include_vars:
+    file: "{{ __dynns_fin_temp.path }}"
+
+- name: Remove tempfile
+  file:
+    path: "{{ __dynns_fin_temp.path }}"
+    state: absent
+  delegate_to: localhost
+
+- name: Unset SA-token CI/CD variable
+  gitlab_project_variable:
+    api_url: "{{ gitlab_access.url }}"
+    api_token: "{{ _dynns_gitlab_api_token }}"
+    project: "{{ gitlab_access.project }}"
+    purge: false
+    state: absent
+    vars:
+       '{ "{{ _token_dynns_deploy_ }}": "" }'
+...

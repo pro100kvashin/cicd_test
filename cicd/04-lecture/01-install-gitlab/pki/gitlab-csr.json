@@ -1,0 +1,14 @@
+{
+  "hosts":
+  [
+    "gitlab.example.com",
+    "registry.example.com",
+    "localhost",
+    "127.0.0.1"
+  ],
+  "CN": "example.com",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  }
+}

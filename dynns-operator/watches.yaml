@@ -1,0 +1,20 @@
+---
+# file: watches.yaml
+- version: v1beta1
+  group: devops.slurm.io
+  kind: MetaDynamicNamespace
+  role: metadynns
+  reconcilePeriod: 30m
+  finalizer:
+    name: finalizer.metadynns.devops.slurm.io
+    role: metadynfin
+
+- version: v1beta1
+  group: devops.slurm.io
+  kind: DynamicNamespace
+  role: dynamicnamespace
+  reconcilePeriod: 1h
+  finalizer:
+    name: finalizer.dynns.devops.slurm.io
+    role: dynfin
+...

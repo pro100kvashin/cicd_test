@@ -1,0 +1,42 @@
+# Default values for textserver.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: stable
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  annotations: {}
+  hosts:
+    - host: argoapp.__SLURM_USERNAME__.edu.slurm.io
+      paths: ["/"]
+
+config: |-
+  user  nginx;
+  worker_processes  1;
+  
+  error_log  /var/log/nginx/error.log warn;
+  pid        /var/run/nginx.pid;
+  
+  
+  events {
+      worker_connections  1024;
+  }
+
+  http {
+      server {
+          location / {
+              return 200 'Hello from argo!';
+              add_header Content-Type text/plain;
+          }
+      }
+  }

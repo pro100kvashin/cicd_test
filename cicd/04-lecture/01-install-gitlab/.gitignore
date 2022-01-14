@@ -1,0 +1,6 @@
+pki/*.csr
+pki/*.pem
+config/
+data/
+logs/
+ssl/

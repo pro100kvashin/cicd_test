@@ -1,0 +1,51 @@
+---
+# file: roles/dynamicnamespace/tasks/main.yml
+# This group of task check asserts and create name space
+# And then include other tasks
+
+- name: Check role requirements
+  assert:
+    that:
+      - ansible_version.full is version('2.8.0', '>=')
+
+- name: Create a namespace
+  k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ meta.name }}"
+    resource_definition:
+      metadata:
+        labels:
+          type: dynamic
+
+- name: Import quotas
+  import_tasks: quotas.yml
+
+- name: Import ranges
+  import_tasks: ranges.yml
+
+- name: Import rbac/deploy_sa
+  import_tasks: rbac/deploy_sa.yml
+
+- name: Import rbac/gitlab_integration.yml
+  import_tasks: rbac/gitlab_integration.yml
+  when: gitlab_access|length > 0
+
+- name: Import psp
+  include_tasks: psp.yml
+  when: psp_name is defined
+
+- name: Import rbac/team_account
+  include_tasks: rbac/team_account.yml
+  when: active_directory_auth
+
+- name: Import rbac/atomiclog
+  import_tasks: rbac/atomiclog.yml
+
+- name: Import secrets/registry_creds
+  import_tasks: secrets/registry_creds.yml
+
+- name: Import sync.yml
+  import_tasks: sync.yml
+  when: gitlab_access|length > 0
+...

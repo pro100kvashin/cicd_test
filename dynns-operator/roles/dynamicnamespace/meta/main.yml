@@ -1,0 +1,25 @@
+---
+# file: roles/dynamicnamespace/meta/main.yml
+galaxy_info:
+  author: Slurm LLC team
+  description: Create and prepare dynamic namespaces (for GitLab review- environments)
+  company: Sportmaster LLC
+
+  license: BSD
+
+  min_ansible_version: 2.8
+
+  platforms:
+  - name: EL
+    versions:
+    - 7
+    - 8
+
+  galaxy_tags: []
+
+dependencies: []
+
+collections:
+- operator_sdk.util
+- community.kubernetes
+...

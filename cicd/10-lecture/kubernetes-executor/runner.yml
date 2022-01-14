@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runner
+  namespace: runner
+  labels:
+    app: runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: runner
+  template:
+    metadata:
+      labels:
+        app: runner
+    spec:
+      serviceAccountName: runner
+      containers:
+        - name: runner
+          image: "gitlab/gitlab-runner:alpine-v13.2.4"
+          volumeMounts:
+          - mountPath: /etc/gitlab-runner/config.toml
+            name: config
+            subPath: config.toml
+      volumes:
+      - name: config
+        configMap:
+          name: runner
+

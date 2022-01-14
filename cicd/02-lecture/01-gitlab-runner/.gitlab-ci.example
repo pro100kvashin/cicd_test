@@ -1,0 +1,16 @@
+stages:
+    - test
+
+default:
+    tags:
+        - s<ваш номер логина>
+        - docker
+        - local
+
+My first job:
+    stage: test
+    script:
+        - ls -al
+        - echo this is my repo
+        - sleep 20
+        - echo it works!

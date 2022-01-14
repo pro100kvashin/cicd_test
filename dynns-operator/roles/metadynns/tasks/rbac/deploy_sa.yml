@@ -1,0 +1,53 @@
+---
+# file: roles/metadynns/tasks/rbac/deploy_sa.yml
+# Set credentials for loading CR from app's .gitlab-ci.yml. 
+
+- name: SA for CR loading
+  k8s:
+    api_version: v1
+    kind: ServiceAccount
+    name: dynns-cr-sa
+    namespace: "op-dynns-{{ meta.name }}"
+
+- name: Role for dynns-cr-sa
+  k8s:
+    api_version: rbac.authorization.k8s.io/v1
+    kind: Role
+    name: operator:dynns:cr-write
+    namespace: "op-dynns-{{ meta.name }}"
+    resource_definition:
+      rules:
+      - apiGroups:
+        - ""
+        resources:
+        - resourcequotas
+        verbs:
+        - get
+      - apiGroups:
+        - devops.slurm.io
+        resources:
+        - dynamicnamespaces
+        verbs:
+        - create
+        - delete
+        - get
+        - list
+        - patch
+        - update
+        - watch
+
+- name: Bind role to SA
+  k8s:
+    api_version: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    name: operator:dynns:cr-write
+    namespace: "op-dynns-{{ meta.name }}"
+    resource_definition:
+      roleRef:
+        kind: Role
+        name: operator:dynns:cr-write
+        apiGroup: rbac.authorization.k8s.io
+      subjects:
+      - kind: ServiceAccount
+        name: dynns-cr-sa
+...

@@ -1,0 +1,8 @@
+---
+apiVersion: devops.slurm.io/v1beta1
+kind: MetaDynamicNamespace
+metadata:
+  name: special-static
+spec:
+  dynnsCrQuota: 10
+...

@@ -1,0 +1,10 @@
+---
+# This template is not in use, but just as sample
+apiVersion: devops.slurm.io/v1beta1
+kind: MetaDynamicNamespace
+metadata:
+  name: $OPERATOR_PROJECT_NAME
+  namespace: $OPERATOR_NAMESPACE
+spec:
+  dynnsCrQuota: $OPERATOR_DYNNS_QUOTA
+...
